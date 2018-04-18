@@ -1,0 +1,20 @@
+﻿生成启动时间为 2018/4/18 16:40:24。
+     1>项目“F:\project\closed_form_matting\closed_form_matting\closed_form_matting.vcxproj”在节点 2 上(Build 个目标)。
+     1>ClCompile:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IF:\project\eigen /IF:\project\opencv\include /IF:\project\opencv\include\opencv2 /IF:\project\opencv\include\opencv /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt main.cpp
+         main.cpp
+     1>main.cpp(24): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+     1>main.cpp(25): warning C4244: “初始化”: 从“double”转换到“int”，可能丢失数据
+     1>main.cpp(44): warning C4244: “-=”: 从“double”转换到“int”，可能丢失数据
+     1>main.cpp(162): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+     1>main.cpp(163): warning C4244: “=”: 从“double”转换到“int”，可能丢失数据
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"F:\project\closed_form_matting\Release\closed_form_matting.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:F:\project\opencv\lib\Release opencv_imgproc2413.lib opencv_calib3d2413.lib opencv_contrib2413.lib opencv_core2413.lib opencv_features2d2413.lib opencv_flann2413.lib opencv_gpu2413.lib opencv_highgui2413.lib opencv_legacy2413.lib opencv_ml2413.lib opencv_nonfree2413.lib opencv_objdetect2413.lib opencv_ocl2413.lib opencv_photo2413.lib opencv_stitching2413.lib opencv_superres2413.lib opencv_ts2413.lib opencv_video2413.lib opencv_videostab2413.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /DEBUG /PDB:"F:\project\closed_form_matting\Release\closed_form_matting.pdb" /SUBSYSTEM:CONSOLE /OPT:REF /OPT:ICF /LTCG /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"F:\project\closed_form_matting\Release\closed_form_matting.lib" /MACHINE:X86 /SAFESEH Release\main.obj
+         正在生成代码
+         已完成代码的生成
+         closed_form_matting.vcxproj -> F:\project\closed_form_matting\Release\closed_form_matting.exe
+     1>已完成生成项目“F:\project\closed_form_matting\closed_form_matting\closed_form_matting.vcxproj”(Build 个目标)的操作。
+
+生成成功。
+
+已用时间 00:00:02.71
