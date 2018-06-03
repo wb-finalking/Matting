@@ -9,6 +9,7 @@ import sys
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.contrib.layers.python.layers import layers
 
 # setting log format
 # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -53,7 +54,7 @@ class FCN8s:
 
 
     def build(self, rgb, train=False, num_classes=3, load=False, random_init_fc8=False,
-              debug=False, use_dilated=False):
+              debug=False, use_dilated=False, is_bn=True):
         """
         Build the VGG model using loaded weights
         Parameters
@@ -72,39 +73,39 @@ class FCN8s:
         """
         # Convert RGB to BGR
 
-        # with tf.name_scope('Processing'):
-        #
-        #     red, green, blue = tf.split(rgb, 3, 3)
+        with tf.name_scope('Processing'):
+
+            red, green, blue = tf.split(rgb, 3, 3)
         #     # assert red.get_shape().as_list()[1:] == [224, 224, 1]
         #     # assert green.get_shape().as_list()[1:] == [224, 224, 1]
         #     # assert blue.get_shape().as_list()[1:] == [224, 224, 1]
-        #     bgr = tf.concat([
-        #         blue - VGG_MEAN[0],
-        #         green - VGG_MEAN[1],
-        #         red - VGG_MEAN[2],
-        #     ], 3)
+            bgr = tf.concat([
+                blue - VGG_MEAN[0],
+                green - VGG_MEAN[1],
+                red - VGG_MEAN[2],
+            ], 3)
         #
         #     if debug:
         #         bgr = tf.Print(bgr, [tf.shape(bgr)],
         #                        message='Shape of input image: ',
         #                        summarize=4, first_n=1)
-        bgr = rgb
-        self.conv1_1 = self._conv_layer(bgr, "conv1_1", [3,3,3,64], load)
-        self.conv1_2 = self._conv_layer(self.conv1_1, "conv1_2", [3,3,64,64], load)
+        # bgr = rgb
+        self.conv1_1 = self._conv_layer(bgr, "conv1_1", [3,3,3,64], load, is_bn, train)
+        self.conv1_2 = self._conv_layer(self.conv1_1, "conv1_2", [3,3,64,64], load, is_bn, train)
         self.pool1 = self._max_pool(self.conv1_2, 'pool1', debug)
 
-        self.conv2_1 = self._conv_layer(self.pool1, "conv2_1", [3,3,64,128], load)
-        self.conv2_2 = self._conv_layer(self.conv2_1, "conv2_2", [3,3,128,128], load)
+        self.conv2_1 = self._conv_layer(self.pool1, "conv2_1", [3,3,64,128], load, is_bn, train)
+        self.conv2_2 = self._conv_layer(self.conv2_1, "conv2_2", [3,3,128,128], load, is_bn, train)
         self.pool2 = self._max_pool(self.conv2_2, 'pool2', debug)
 
-        self.conv3_1 = self._conv_layer(self.pool2, "conv3_1", [3,3,128,256], load)
-        self.conv3_2 = self._conv_layer(self.conv3_1, "conv3_2", [3,3,256,256], load)
-        self.conv3_3 = self._conv_layer(self.conv3_2, "conv3_3", [3,3,256,256], load)
+        self.conv3_1 = self._conv_layer(self.pool2, "conv3_1", [3,3,128,256], load, is_bn, train)
+        self.conv3_2 = self._conv_layer(self.conv3_1, "conv3_2", [3,3,256,256], load, is_bn, train)
+        self.conv3_3 = self._conv_layer(self.conv3_2, "conv3_3", [3,3,256,256], load, is_bn, train)
         self.pool3 = self._max_pool(self.conv3_3, 'pool3', debug)
 
-        self.conv4_1 = self._conv_layer(self.pool3, "conv4_1", [3,3,256,512], load)
-        self.conv4_2 = self._conv_layer(self.conv4_1, "conv4_2", [3,3,512,512], load)
-        self.conv4_3 = self._conv_layer(self.conv4_2, "conv4_3", [3,3,512,512], load)
+        self.conv4_1 = self._conv_layer(self.pool3, "conv4_1", [3,3,256,512], load, is_bn, train)
+        self.conv4_2 = self._conv_layer(self.conv4_1, "conv4_2", [3,3,512,512], load, is_bn, train)
+        self.conv4_3 = self._conv_layer(self.conv4_2, "conv4_3", [3,3,512,512], load, is_bn, train)
 
         if use_dilated:
             pad = [[0, 0], [0, 0]]
@@ -116,9 +117,9 @@ class FCN8s:
         else:
             self.pool4 = self._max_pool(self.conv4_3, 'pool4', debug)
 
-        self.conv5_1 = self._conv_layer(self.pool4, "conv5_1", [3,3,512,512], load)
-        self.conv5_2 = self._conv_layer(self.conv5_1, "conv5_2", [3,3,512,512], load)
-        self.conv5_3 = self._conv_layer(self.conv5_2, "conv5_3", [3,3,512,512], load)
+        self.conv5_1 = self._conv_layer(self.pool4, "conv5_1", [3,3,512,512], load, is_bn, train)
+        self.conv5_2 = self._conv_layer(self.conv5_1, "conv5_2", [3,3,512,512], load, is_bn, train)
+        self.conv5_3 = self._conv_layer(self.conv5_2, "conv5_3", [3,3,512,512], load, is_bn, train)
         if use_dilated:
             pad = [[0, 0], [0, 0]]
             self.pool5 = tf.nn.max_pool(self.conv5_3, ksize=[1, 2, 2, 1],
@@ -129,12 +130,14 @@ class FCN8s:
         else:
             self.pool5 = self._max_pool(self.conv5_3, 'pool5', debug)
 
-        self.fc6 = self._fc_layer(self.pool5, "fc6", shape=[7, 7, 512, 4096],load=load)
+        self.fc6 = self._fc_layer(self.pool5, "fc6", shape=[7, 7, 512, 4096],
+                                  load=load, is_bn=is_bn, train=train)
 
 
         if train:
             self.fc6 = tf.nn.dropout(self.fc6, 0.5)
-        self.fc7 = self._fc_layer(self.fc6, "fc7", shape=[1, 1, 4096, 4096],load=load)
+        self.fc7 = self._fc_layer(self.fc6, "fc7", shape=[1, 1, 4096, 4096],
+                                  load=load, is_bn=is_bn, train=train)
         if train:
             self.fc7 = tf.nn.dropout(self.fc7, 0.5)
 
@@ -147,43 +150,48 @@ class FCN8s:
 
         if random_init_fc8:
             self.score_fr = self._score_layer(self.fc7, "score_fr",
-                                              num_classes)
+                                              num_classes, is_bn=is_bn, train=train)
         else:
             self.score_fr = self._fc_layer(self.fc7, "score_fr",
                                            shape = [1, 1, 4096, 1000],
                                            num_classes=num_classes,
                                            load = load,
-                                           relu=False)
+                                           relu=False, is_bn=is_bn, train=train)
 
-        self.pred = tf.argmax(self.score_fr, dimension=3)
+        # self.pred = tf.argmax(self.score_fr, dimension=3)
 
         self.upscore2 = self._upscore_layer(self.score_fr,
                                             shape=tf.shape(self.pool4),
                                             num_classes=num_classes,
                                             debug=debug, name='upscore2',
-                                            ksize=4, stride=2)
+                                            ksize=4, stride=2,
+                                            is_bn = is_bn, train = train)
         self.score_pool4 = self._score_layer(self.pool4, "score_pool4",
-                                             num_classes=num_classes)
+                                             num_classes=num_classes,
+                                             is_bn=is_bn, train=train)
         self.fuse_pool4 = tf.add(self.upscore2, self.score_pool4)
 
         self.upscore4 = self._upscore_layer(self.fuse_pool4,
                                             shape=tf.shape(self.pool3),
                                             num_classes=num_classes,
                                             debug=debug, name='upscore4',
-                                            ksize=4, stride=2)
+                                            ksize=4, stride=2,
+                                            is_bn=is_bn, train=train)
         self.score_pool3 = self._score_layer(self.pool3, "score_pool3",
-                                             num_classes=num_classes)
+                                             num_classes=num_classes,
+                                             is_bn=is_bn, train=train)
         self.fuse_pool3 = tf.add(self.upscore4, self.score_pool3)
 
         self.upscore32 = self._upscore_layer(self.fuse_pool3,
                                              shape=tf.shape(bgr),
                                              num_classes=num_classes,
                                              debug=debug, name='upscore32',
-                                             ksize=16, stride=8)
+                                             ksize=16, stride=8,
+                                             is_bn=is_bn, train=train)
 
-        self.pred_up = tf.argmax(self.upscore32, dimension=3)
+        # self.pred_up = tf.argmax(self.upscore32, dimension=3)
 
-        self.softmax = tf.nn.softmax(self.upscore32, dim=3)
+        self.softmax = tf.nn.softmax(self.upscore32, axis=3)
 
 
     #########################################################################
@@ -239,7 +247,7 @@ class FCN8s:
         # _variable_summaries(var)
         return var
 
-    def _conv_layer(self, bottom, name, shape, load=False):
+    def _conv_layer(self, bottom, name, shape, load=False, is_bn=True, train=True):
         with tf.variable_scope(name) as scope:
             filt = self.get_conv_filter(name, shape, load)
             conv = tf.nn.conv2d(bottom, filt, [1, 1, 1, 1], padding='SAME')
@@ -250,7 +258,11 @@ class FCN8s:
             relu = tf.nn.relu(bias)
             # Add summary to Tensorboard
             # _activation_summary(relu)
-            return relu
+            if (is_bn):
+                # return utils.bn_layer(relu, is_training)
+                return layers.batch_norm(relu, scope='afternorm', is_training=train)
+            else:
+                return relu
 
     #########################################################################
     ############################## pool layer ###############################
@@ -332,7 +344,7 @@ class FCN8s:
         return var
 
     def _fc_layer(self, bottom, name, shape, load=False, num_classes=None,
-                  relu=True, debug=False):
+                  relu=True, debug=False, is_bn = True, train = True):
         with tf.variable_scope(name) as scope:
             if name == 'score_fr':
                 name = 'fc8'
@@ -354,7 +366,11 @@ class FCN8s:
                 bias = tf.Print(bias, [tf.shape(bias)],
                                 message='Shape of %s' % name,
                                 summarize=4, first_n=1)
-            return bias
+            if (is_bn):
+                # return utils.bn_layer(relu, is_training)
+                return layers.batch_norm(bias, scope='afternorm', is_training=train)
+            else:
+                return bias
 
     #########################################################################
     ############################## score layer ##############################
@@ -397,7 +413,7 @@ class FCN8s:
         # _variable_summaries(var)
         return var
 
-    def _score_layer(self, bottom, name, num_classes):
+    def _score_layer(self, bottom, name, num_classes,is_bn=True, train=True):
         with tf.variable_scope(name) as scope:
             # get number of input channels
             in_features = bottom.get_shape()[3].value
@@ -422,7 +438,11 @@ class FCN8s:
 
             # _activation_summary(bias)
 
-            return bias
+            if (is_bn):
+                # return utils.bn_layer(relu, is_training)
+                return layers.batch_norm(bias, scope='afternorm', is_training=train)
+            else:
+                return bias
 
     #########################################################################
     ############################# upscore layer #############################
@@ -450,7 +470,7 @@ class FCN8s:
 
     def _upscore_layer(self, bottom, shape,
                        num_classes, name, debug,
-                       ksize=4, stride=2):
+                       ksize=4, stride=2,is_bn=True, train=True):
         strides = [1, stride, stride, 1]
         with tf.variable_scope(name):
             in_features = bottom.get_shape()[3].value
@@ -474,17 +494,25 @@ class FCN8s:
             stddev = (2 / num_input)**0.5
 
             weights = self.get_deconv_filter(f_shape)
+            # weights = tf.Print(weights, [weights],
+            #                    message='weights: ',
+            #                    summarize=20, first_n=5)
             # self._add_wd_and_summary(weights, self.wd, "fc_wlosses")
             deconv = tf.nn.conv2d_transpose(bottom, weights, output_shape,
                                             strides=strides, padding='SAME')
+
 
             if debug:
                 deconv = tf.Print(deconv, [tf.shape(deconv)],
                                   message='Shape of %s' % name,
                                   summarize=4, first_n=1)
 
-        # _activation_summary(deconv)
-        return deconv
+            # _activation_summary(deconv)
+            if (is_bn):
+                # return utils.bn_layer(relu, is_training)
+                return layers.batch_norm(deconv, scope='afternorm', is_training=train)
+            else:
+                return deconv
 
 
 
